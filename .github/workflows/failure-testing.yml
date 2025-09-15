@@ -138,12 +138,21 @@ jobs:
     - name: Generate Summary
       run: |
         echo "## Workflow Summary" > summary.md
+        echo "**Run ID**: ${{ github.run_id }}" >> summary.md
+        echo "**Timestamp**: $(date)" >> summary.md
+        echo "**Failure Type**: ${{ github.event.inputs.failure_type || 'build_failure' }}" >> summary.md
+        echo "" >> summary.md
+        echo "### Job Results" >> summary.md
         echo "- Failure Test: ${{ needs.failure-test.result }}" >> summary.md
         echo "- Success Test: ${{ needs.success-test.result }}" >> summary.md
         echo "- Conditional Failure: ${{ needs.conditional-failure.result }}" >> summary.md
         echo "- Notification: ${{ needs.failure-notification.result }}" >> summary.md
         echo "" >> summary.md
-        echo "This workflow is designed to test failure scenarios." >> summary.md
+        echo "### Summary" >> summary.md
+        echo "This workflow is designed to test failure scenarios and validate CI/CD resilience." >> summary.md
+        echo "Expected behavior: Some jobs should fail intentionally to test error handling." >> summary.md
+        echo "" >> summary.md
+        echo "✅ **Success**: Workflow completed and generated this summary" >> summary.md
         cat summary.md
         
     - name: Upload Summary
