@@ -1,164 +1,49 @@
 ---
-name: Failure Testing Workflow
+name: Failure Testing
 
 on:
-  push:
-    branches: [main, develop]
-  pull_request:
-    branches: [main, develop]
   workflow_dispatch:
     inputs:
       failure_type:
         description: 'Type of failure to simulate'
         required: true
-        default: 'build_failure'
+        default: 'build'
         type: choice
         options:
-          - build_failure
-          - test_failure
-          - deployment_failure
-          - timeout_failure
-          - dependency_failure
-
-env:
-  CARGO_TERM_COLOR: always
-  RUST_BACKTRACE: 1
+          - build
+          - test
+          - dependency
 
 jobs:
-  # Intentional failure job for testing workflow failure handling
-  failure-test:
-    name: Simulate Workflow Failure (${{ github.event.inputs.failure_type || 'build_failure' }})
+  test-failure-handling:
+    name: Test Failure Scenarios
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Repository
+      - name: Checkout Code
         uses: actions/checkout@v4
 
       - name: Setup Environment
         run: |
-        echo "Setting up environment for failure testing..."
-        echo "Failure type: ${{ github.event.inputs.failure_type || 'build_failure' }}"
+          echo "Setting up environment for failure testing..."
+          echo "Failure type: ${{ github.event.inputs.failure_type }}"
 
       - name: Simulate Build Failure
-        if: github.event.inputs.failure_type == 'build_failure' || github.event.inputs.failure_type == null
+        if: github.event.inputs.failure_type == 'build'
         run: |
-        echo "🚨 Simulating build failure..."
-        echo "This is an intentional failure for testing purposes"
-        echo "Testing workflow failure handling mechanisms"
-        exit 1
+          echo "Simulating build failure..."
+          exit 1
 
       - name: Simulate Test Failure
-        if: github.event.inputs.failure_type == 'test_failure'
+        if: github.event.inputs.failure_type == 'test'
         run: |
-        echo "🧪 Running tests that will fail..."
-        echo "Test 1: PASS"
-        echo "Test 2: PASS"
-        echo "Test 3: FAIL - Simulated test failure"
-        echo "❌ Tests failed intentionally for testing"
-        exit 1
-
-      - name: Simulate Deployment Failure
-        if: github.event.inputs.failure_type == 'deployment_failure'
-        run: |
-        echo "🚀 Attempting deployment..."
-        echo "Connecting to deployment target..."
-        echo "❌ Deployment failed - Network unreachable (simulated)"
-        exit 1
-
-      - name: Simulate Timeout Failure
-        if: github.event.inputs.failure_type == 'timeout_failure'
-        run: |
-        echo "⏱️ Running long operation that will timeout..."
-        sleep 30
-        echo "This should timeout in CI environment"
-        exit 1
+          echo "Simulating test failure..."
+          echo "Tests would fail here"
+          exit 1
 
       - name: Simulate Dependency Failure
-        if: github.event.inputs.failure_type == 'dependency_failure'
+        if: github.event.inputs.failure_type == 'dependency'
         run: |
-        echo "📦 Installing dependencies..."
-        echo "Downloading package-that-does-not-exist..."
-        echo "❌ Failed to resolve dependency (simulated)"
-        exit 1
-
-  # Job that always passes to test mixed results
-          success-test:
-          name: Success Test (Control)
-          runs-on: ubuntu-latest
-
-          steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-
-      - name: Run Successful Operation
-        run: |
-        echo "✅ This job always succeeds"
-        echo "Used to test mixed success/failure scenarios"
-        echo "Current date: $(date)"
-        echo "Success test completed"
-
-  # Job that fails after success job to test partial failures
-          conditional-failure:
-          name: Conditional Failure Test
-          runs-on: ubuntu-latest
-          needs: success-test
-        if: github.event.inputs.failure_type == 'build_failure' || github.event.inputs.failure_type == null
-
-          steps:
-      - name: Conditional Failure
-        run: |
-        echo "🎯 This job runs after success but fails"
-        echo "Testing scenario where some jobs pass and others fail"
-        exit 1
-
-  # Notification job that runs on failure
-          failure-notification:
-          name: Failure Notification
-          runs-on: ubuntu-latest
-          needs: [failure-test, success-test, conditional-failure]
-        if: always() && (needs.failure-test.result == 'failure' || needs.conditional-failure.result == 'failure')
-
-          steps:
-      - name: Notify of Failure
-        run: |
-        echo "📧 Failure notification triggered"
-        echo "One or more jobs in the workflow failed"
-        echo "Failure test result: ${{ needs.failure-test.result }}"
-        echo "Success test result: ${{ needs.success-test.result }}"
-        echo "Conditional failure result: ${{ needs.conditional-failure.result }}"
-        echo "This notification system is working correctly"
-
-  # Summary job that always runs
-          workflow-summary:
-          name: Workflow Summary
-          runs-on: ubuntu-latest
-          needs: [failure-test, success-test, conditional-failure, failure-notification]
-        if: always()
-
-          steps:
-      - name: Generate Summary
-        run: |
-        echo "## Workflow Summary" > summary.md
-        echo "**Run ID**: ${{ github.run_id }}" >> summary.md
-        echo "**Timestamp**: $(date)" >> summary.md
-        echo "**Failure Type**: ${{ github.event.inputs.failure_type || 'build_failure' }}" >> summary.md
-        echo "" >> summary.md
-        echo "### Job Results" >> summary.md
-        echo "- Failure Test: ${{ needs.failure-test.result }}" >> summary.md
-        echo "- Success Test: ${{ needs.success-test.result }}" >> summary.md
-        echo "- Conditional Failure: ${{ needs.conditional-failure.result }}" >> summary.md
-        echo "- Notification: ${{ needs.failure-notification.result }}" >> summary.md
-        echo "" >> summary.md
-        echo "### Summary" >> summary.md
-        echo "This workflow is designed to test failure scenarios and validate CI/CD resilience." >> summary.md
-        echo "Expected behavior: Some jobs should fail intentionally to test error handling." >> summary.md
-        echo "" >> summary.md
-        echo "✅ **Success**: Workflow completed and generated this summary" >> summary.md
-        cat summary.md
-
-      - name: Upload Summary
-        uses: actions/upload-artifact@v3
-        with:
-        name: failure-test-summary-${{ github.run_id }}
-        path: summary.md
-        retention-days: 7
+          echo "Simulating dependency failure..."
+          echo "Dependencies would fail here"
+          exit 1

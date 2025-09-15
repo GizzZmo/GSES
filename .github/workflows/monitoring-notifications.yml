@@ -32,12 +32,12 @@ jobs:
 
     steps:
       - name: Checkout Repository
-      uses: actions/checkout@v4
+        uses: actions/checkout@v4
 
       - name: Analyze Recent Workflows
-      uses: actions/github-script@v6
+        uses: actions/github-script@v6
       id: workflow_analysis
-      with:
+        with:
         script: |
           const fs = require('fs');
 
@@ -71,15 +71,15 @@ jobs:
           return healthData;
 
       - name: Generate Health Report
-      run: |
-        mkdir -p monitoring-reports
+        run: |
+          mkdir -p monitoring-reports
 
-        echo "# Workflow Health Report" > monitoring-reports/health-report.md
+          echo "# Workflow Health Report" > monitoring-reports/health-report.md
         echo "Generated on: $(date)" >> monitoring-reports/health-report.md
-        echo "" >> monitoring-reports/health-report.md
+          echo "" >> monitoring-reports/health-report.md
 
-        # Parse health data
-        if [ -f workflow-health.json ]; then
+          # Parse health data
+          if [ -f workflow-health.json ]; then
           total=$(jq -r '.total' workflow-health.json)
           success=$(jq -r '.success' workflow-health.json)
           failure=$(jq -r '.failure' workflow-health.json)
@@ -108,35 +108,35 @@ jobs:
             echo "🔴 **System Health:** Poor ($success_rate% success rate)" >> monitoring-reports/health-report.md
             echo "HEALTH_STATUS=poor" >> $GITHUB_ENV
           fi
-        fi
+          fi
 
       - name: Check Repository Health
-      run: |
-        echo "" >> monitoring-reports/health-report.md
-        echo "## Repository Health Metrics" >> monitoring-reports/health-report.md
+        run: |
+          echo "" >> monitoring-reports/health-report.md
+          echo "## Repository Health Metrics" >> monitoring-reports/health-report.md
 
-        # Check recent commit activity
-        recent_commits=$(git log --since="7 days ago" --oneline | wc -l)
+          # Check recent commit activity
+          recent_commits=$(git log --since="7 days ago" --oneline | wc -l)
         echo "- **Commits (last 7 days):** $recent_commits" >> monitoring-reports/health-report.md
 
-        # Check file sizes
-        large_files=$(find . -size +1M -not -path "./.git/*" | wc -l)
+          # Check file sizes
+          large_files=$(find . -size +1M -not -path "./.git/*" | wc -l)
         echo "- **Large files (>1MB):** $large_files" >> monitoring-reports/health-report.md
 
-        # Check dependency files
-        if [ -f "Move.toml" ]; then
+          # Check dependency files
+          if [ -f "Move.toml" ]; then
           echo "- **Move.toml:** ✅ Present" >> monitoring-reports/health-report.md
-        else
+          else
           echo "- **Move.toml:** ❌ Missing" >> monitoring-reports/health-report.md
-        fi
+          fi
 
-        # Check documentation
-        doc_files=$(find . -name "*.md" | wc -l)
+          # Check documentation
+          doc_files=$(find . -name "*.md" | wc -l)
         echo "- **Documentation files:** $doc_files" >> monitoring-reports/health-report.md
 
       - name: Upload Health Reports
-      uses: actions/upload-artifact@v3
-      with:
+        uses: actions/upload-artifact@v3
+        with:
         name: monitoring-reports-${{ github.sha }}
         path: monitoring-reports/
         retention-days: 30
@@ -145,12 +145,12 @@ jobs:
   failure-notification:
       name: Failure Notification
       runs-on: ubuntu-latest
-      if: github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'failure'
+        if: github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'failure'
 
-    steps:
+          steps:
       - name: Generate Failure Alert
-      uses: actions/github-script@v6
-      with:
+        uses: actions/github-script@v6
+        with:
         script: |
           const workflowRun = context.payload.workflow_run;
 
@@ -182,9 +182,9 @@ jobs:
           }
 
       - name: Post to Discussions
-      uses: actions/github-script@v6
-      continue-on-error: true
-      with:
+        uses: actions/github-script@v6
+        continue-on-error: true
+        with:
         script: |
           const workflowRun = context.payload.workflow_run;
 
@@ -195,15 +195,15 @@ jobs:
   status-report:
       name: Generate Status Report
       runs-on: ubuntu-latest
-      if: github.event_name == 'schedule' || github.event.inputs.notification_type == 'status-report'
+        if: github.event_name == 'schedule' || github.event.inputs.notification_type == 'status-report'
 
-    steps:
+          steps:
       - name: Checkout Repository
-      uses: actions/checkout@v4
+        uses: actions/checkout@v4
 
       - name: Collect System Metrics
-      uses: actions/github-script@v6
-      with:
+        uses: actions/github-script@v6
+        with:
         script: |
           const fs = require('fs');
 
@@ -253,16 +253,16 @@ jobs:
           fs.writeFileSync('repo-metrics.json', JSON.stringify(metrics, null, 2));
 
       - name: Generate Status Report
-      run: |
-        mkdir -p status-reports
+        run: |
+          mkdir -p status-reports
 
-        echo "# Repository Status Report" > status-reports/status-report.md
+          echo "# Repository Status Report" > status-reports/status-report.md
         echo "Generated on: $(date)" >> status-reports/status-report.md
         echo "Repository: ${{ github.repository }}" >> status-reports/status-report.md
-        echo "" >> status-reports/status-report.md
+          echo "" >> status-reports/status-report.md
 
-        # Parse metrics
-        if [ -f repo-metrics.json ]; then
+          # Parse metrics
+          if [ -f repo-metrics.json ]; then
           stars=$(jq -r '.stars' repo-metrics.json)
           forks=$(jq -r '.forks' repo-metrics.json)
           open_issues=$(jq -r '.openIssues' repo-metrics.json)
@@ -283,26 +283,26 @@ jobs:
           echo "- **New Issues:** 🆕 $recent_issues" >> status-reports/status-report.md
           echo "- **New Pull Requests:** 🔀 $recent_prs" >> status-reports/status-report.md
           echo "" >> status-reports/status-report.md
-        fi
+          fi
 
-        # Add workflow health
-        echo "## Workflow Health" >> status-reports/status-report.md
+          # Add workflow health
+          echo "## Workflow Health" >> status-reports/status-report.md
         echo "- Comprehensive CI/CD: Active" >> status-reports/status-report.md
         echo "- Security Scanning: Active" >> status-reports/status-report.md
         echo "- Documentation Generation: Active" >> status-reports/status-report.md
         echo "- Release Automation: Active" >> status-reports/status-report.md
         echo "- Performance Testing: Active" >> status-reports/status-report.md
-        echo "" >> status-reports/status-report.md
+          echo "" >> status-reports/status-report.md
 
-        echo "## Quick Links" >> status-reports/status-report.md
+          echo "## Quick Links" >> status-reports/status-report.md
         echo "- [Issues](https://github.com/${{ github.repository }}/issues)" >> status-reports/status-report.md
         echo "- [Pull Requests](https://github.com/${{ github.repository }}/pulls)" >> status-reports/status-report.md
         echo "- [Actions](https://github.com/${{ github.repository }}/actions)" >> status-reports/status-report.md
         echo "- [Security](https://github.com/${{ github.repository }}/security)" >> status-reports/status-report.md
 
       - name: Upload Status Reports
-      uses: actions/upload-artifact@v3
-      with:
+        uses: actions/upload-artifact@v3
+        with:
         name: status-reports-${{ github.run_id }}
         path: status-reports/
         retention-days: 90
@@ -311,70 +311,70 @@ jobs:
   integration-health:
       name: Integration Health Check
       runs-on: ubuntu-latest
-      if: github.event_name == 'schedule' || github.event.inputs.notification_type == 'health-check'
+        if: github.event_name == 'schedule' || github.event.inputs.notification_type == 'health-check'
 
-    steps:
+          steps:
       - name: Checkout Repository
-      uses: actions/checkout@v4
+        uses: actions/checkout@v4
 
       - name: Test External Integrations
-      run: |
-        mkdir -p integration-reports
+        run: |
+          mkdir -p integration-reports
 
-        echo "# Integration Health Report" > integration-reports/integration-health.md
+          echo "# Integration Health Report" > integration-reports/integration-health.md
         echo "Generated on: $(date)" >> integration-reports/integration-health.md
-        echo "" >> integration-reports/integration-health.md
+          echo "" >> integration-reports/integration-health.md
 
-        echo "## External Service Health" >> integration-reports/integration-health.md
+          echo "## External Service Health" >> integration-reports/integration-health.md
 
-        # Test GitHub API connectivity
+          # Test GitHub API connectivity
         if curl -s -f https://api.github.com > /dev/null; then
           echo "- **GitHub API:** ✅ Accessible" >> integration-reports/integration-health.md
-        else
+          else
           echo "- **GitHub API:** ❌ Not accessible" >> integration-reports/integration-health.md
-        fi
+          fi
 
-        # Test Sui network connectivity (if applicable)
+          # Test Sui network connectivity (if applicable)
         if curl -s -f https://fullnode.testnet.sui.io:443 > /dev/null; then
           echo "- **Sui Testnet:** ✅ Accessible" >> integration-reports/integration-health.md
-        else
+          else
           echo "- **Sui Testnet:** ❌ Not accessible" >> integration-reports/integration-health.md
-        fi
+          fi
 
-        # Test package registries
+          # Test package registries
         if curl -s -f https://registry.npmjs.org > /dev/null; then
           echo "- **NPM Registry:** ✅ Accessible" >> integration-reports/integration-health.md
-        else
+          else
           echo "- **NPM Registry:** ❌ Not accessible" >> integration-reports/integration-health.md
-        fi
+          fi
 
         if curl -s -f https://crates.io > /dev/null; then
           echo "- **Crates.io:** ✅ Accessible" >> integration-reports/integration-health.md
-        else
+          else
           echo "- **Crates.io:** ❌ Not accessible" >> integration-reports/integration-health.md
-        fi
+          fi
 
       - name: Check Workflow Dependencies
-      run: |
-        echo "" >> integration-reports/integration-health.md
-        echo "## Workflow Dependencies" >> integration-reports/integration-health.md
+        run: |
+          echo "" >> integration-reports/integration-health.md
+          echo "## Workflow Dependencies" >> integration-reports/integration-health.md
 
-        # Check if required actions are available
-        actions_to_check=(
+          # Check if required actions are available
+          actions_to_check=(
           "actions/checkout@v4"
           "actions/setup-node@v3"
           "actions/upload-artifact@v3"
           "dtolnay/rust-toolchain@stable"
-        )
+          )
 
-        for action in "${actions_to_check[@]}"; do
+          for action in "${actions_to_check[@]}"; do
           # This is a simplified check - in practice you'd verify actual availability
           echo "- **$action:** ✅ Available" >> integration-reports/integration-health.md
-        done
+          done
 
       - name: Upload Integration Reports
-      uses: actions/upload-artifact@v3
-      with:
+        uses: actions/upload-artifact@v3
+        with:
         name: integration-reports-${{ github.run_id }}
         path: integration-reports/
         retention-days: 30
@@ -384,42 +384,42 @@ jobs:
       name: Generate Monitoring Summary
       runs-on: ubuntu-latest
       needs: [workflow-health-check, status-report, integration-health]
-      if: always()
+        if: always()
 
-    steps:
+          steps:
       - name: Download All Monitoring Reports
-      uses: actions/download-artifact@v3
-      with:
+        uses: actions/download-artifact@v3
+        with:
         path: all-monitoring-reports/
 
       - name: Generate Summary Dashboard
-      run: |
-        mkdir -p monitoring-dashboard
+        run: |
+          mkdir -p monitoring-dashboard
 
-        echo "# Monitoring Dashboard" > monitoring-dashboard/MONITORING_SUMMARY.md
+          echo "# Monitoring Dashboard" > monitoring-dashboard/MONITORING_SUMMARY.md
         echo "Generated on: $(date)" >> monitoring-dashboard/MONITORING_SUMMARY.md
         echo "Repository: ${{ github.repository }}" >> monitoring-dashboard/MONITORING_SUMMARY.md
-        echo "" >> monitoring-dashboard/MONITORING_SUMMARY.md
+          echo "" >> monitoring-dashboard/MONITORING_SUMMARY.md
 
-        echo "## System Status Overview" >> monitoring-dashboard/MONITORING_SUMMARY.md
+          echo "## System Status Overview" >> monitoring-dashboard/MONITORING_SUMMARY.md
         echo "- **Workflow Health Check:** ${{ needs.workflow-health-check.result }}" >> monitoring-dashboard/MONITORING_SUMMARY.md
         echo "- **Status Report:** ${{ needs.status-report.result }}" >> monitoring-dashboard/MONITORING_SUMMARY.md
         echo "- **Integration Health:** ${{ needs.integration-health.result }}" >> monitoring-dashboard/MONITORING_SUMMARY.md
-        echo "" >> monitoring-dashboard/MONITORING_SUMMARY.md
+          echo "" >> monitoring-dashboard/MONITORING_SUMMARY.md
 
-        # Include all monitoring reports
-        find all-monitoring-reports/ -name "*.md" -exec echo "---" \; -exec cat {} \; >> monitoring-dashboard/MONITORING_SUMMARY.md || true
+          # Include all monitoring reports
+          find all-monitoring-reports/ -name "*.md" -exec echo "---" \; -exec cat {} \; >> monitoring-dashboard/MONITORING_SUMMARY.md || true
 
-        echo "" >> monitoring-dashboard/MONITORING_SUMMARY.md
-        echo "## Monitoring Recommendations" >> monitoring-dashboard/MONITORING_SUMMARY.md
-        echo "- Regular monitoring helps maintain system reliability" >> monitoring-dashboard/MONITORING_SUMMARY.md
-        echo "- Address workflow failures promptly to prevent accumulation" >> monitoring-dashboard/MONITORING_SUMMARY.md
-        echo "- Monitor external service dependencies for potential issues" >> monitoring-dashboard/MONITORING_SUMMARY.md
-        echo "- Keep workflow health metrics above 90% for optimal performance" >> monitoring-dashboard/MONITORING_SUMMARY.md
+          echo "" >> monitoring-dashboard/MONITORING_SUMMARY.md
+          echo "## Monitoring Recommendations" >> monitoring-dashboard/MONITORING_SUMMARY.md
+          echo "- Regular monitoring helps maintain system reliability" >> monitoring-dashboard/MONITORING_SUMMARY.md
+          echo "- Address workflow failures promptly to prevent accumulation" >> monitoring-dashboard/MONITORING_SUMMARY.md
+          echo "- Monitor external service dependencies for potential issues" >> monitoring-dashboard/MONITORING_SUMMARY.md
+          echo "- Keep workflow health metrics above 90% for optimal performance" >> monitoring-dashboard/MONITORING_SUMMARY.md
 
       - name: Upload Monitoring Dashboard
-      uses: actions/upload-artifact@v3
-      with:
+        uses: actions/upload-artifact@v3
+        with:
         name: monitoring-dashboard-${{ github.run_id }}
         path: monitoring-dashboard/
         retention-days: 90
@@ -428,12 +428,12 @@ jobs:
   emergency-test:
       name: Emergency Notification Test
       runs-on: ubuntu-latest
-      if: github.event.inputs.notification_type == 'alert-test'
+        if: github.event.inputs.notification_type == 'alert-test'
 
-    steps:
+          steps:
       - name: Test Emergency Protocols
-      uses: actions/github-script@v6
-      with:
+        uses: actions/github-script@v6
+        with:
         script: |
           console.log('🧪 Testing emergency notification protocols...');
 
@@ -463,3 +463,4 @@ jobs:
           });
 
           console.log('✅ Emergency notification test completed successfully');
+

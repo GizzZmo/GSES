@@ -22,11 +22,11 @@ jobs:
 
     steps:
       - name: Checkout Repository
-      uses: actions/checkout@v4
+        uses: actions/checkout@v4
 
       - name: Auto-label Issues
-      uses: actions/github-script@v6
-      with:
+        uses: actions/github-script@v6
+        with:
         script: |
           const issue = context.payload.issue;
           const title = issue.title.toLowerCase();
@@ -83,8 +83,8 @@ jobs:
           }
 
       - name: Welcome New Contributors
-      uses: actions/github-script@v6
-      with:
+        uses: actions/github-script@v6
+        with:
         script: |
           const issue = context.payload.issue;
 
@@ -124,25 +124,25 @@ A maintainer will review your issue soon. If you're interested in contributing c
 
     steps:
       - name: Checkout Repository
-      uses: actions/checkout@v4
-      with:
+        uses: actions/checkout@v4
+        with:
         fetch-depth: 0
 
       - name: Analyze PR Changes
       id: pr_analysis
-      run: |
-        mkdir -p pr-analysis
+        run: |
+          mkdir -p pr-analysis
 
-        echo "# PR Analysis Report" > pr-analysis/pr-analysis.md
+          echo "# PR Analysis Report" > pr-analysis/pr-analysis.md
         echo "PR #${{ github.event.pull_request.number }}: ${{ github.event.pull_request.title }}" >> pr-analysis/pr-analysis.md
         echo "Generated on: $(date)" >> pr-analysis/pr-analysis.md
-        echo "" >> pr-analysis/pr-analysis.md
+          echo "" >> pr-analysis/pr-analysis.md
 
-        # Get changed files
-        echo "## Changed Files" >> pr-analysis/pr-analysis.md
-        git diff --name-only ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }} > changed-files.txt
+          # Get changed files
+          echo "## Changed Files" >> pr-analysis/pr-analysis.md
+          git diff --name-only ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }} > changed-files.txt
 
-        if [ -s changed-files.txt ]; then
+          if [ -s changed-files.txt ]; then
           move_files=$(grep "\.move$" changed-files.txt || echo "")
           workflow_files=$(grep "\.yml$\|\.yaml$" changed-files.txt || echo "")
           doc_files=$(grep "\.md$" changed-files.txt || echo "")
@@ -156,86 +156,86 @@ A maintainer will review your issue soon. If you're interested in contributing c
           if [ -n "$move_files" ]; then echo "HAS_MOVE_CHANGES=true" >> $GITHUB_ENV; fi
           if [ -n "$workflow_files" ]; then echo "HAS_WORKFLOW_CHANGES=true" >> $GITHUB_ENV; fi
           if [ -n "$doc_files" ]; then echo "HAS_DOC_CHANGES=true" >> $GITHUB_ENV; fi
-        fi
+          fi
 
-        # Analyze code changes
-        echo "## Code Change Analysis" >> pr-analysis/pr-analysis.md
+          # Analyze code changes
+          echo "## Code Change Analysis" >> pr-analysis/pr-analysis.md
 
-        lines_added=$(git diff --shortstat ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }} | grep -o "[0-9]* insertion" | cut -d' ' -f1 || echo "0")
-        lines_deleted=$(git diff --shortstat ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }} | grep -o "[0-9]* deletion" | cut -d' ' -f1 || echo "0")
+          lines_added=$(git diff --shortstat ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }} | grep -o "[0-9]* insertion" | cut -d' ' -f1 || echo "0")
+          lines_deleted=$(git diff --shortstat ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }} | grep -o "[0-9]* deletion" | cut -d' ' -f1 || echo "0")
 
         echo "- **Lines added:** $lines_added" >> pr-analysis/pr-analysis.md
         echo "- **Lines deleted:** $lines_deleted" >> pr-analysis/pr-analysis.md
-        echo "" >> pr-analysis/pr-analysis.md
+          echo "" >> pr-analysis/pr-analysis.md
 
-        # Calculate change impact
-        total_changes=$((lines_added + lines_deleted))
-        if [ "$total_changes" -gt 500 ]; then
+          # Calculate change impact
+          total_changes=$((lines_added + lines_deleted))
+          if [ "$total_changes" -gt 500 ]; then
           echo "- **Impact:** Large PR (consider breaking into smaller PRs)" >> pr-analysis/pr-analysis.md
           echo "PR_SIZE=large" >> $GITHUB_ENV
-        elif [ "$total_changes" -gt 100 ]; then
+          elif [ "$total_changes" -gt 100 ]; then
           echo "- **Impact:** Medium PR" >> pr-analysis/pr-analysis.md
           echo "PR_SIZE=medium" >> $GITHUB_ENV
-        else
+          else
           echo "- **Impact:** Small PR" >> pr-analysis/pr-analysis.md
           echo "PR_SIZE=small" >> $GITHUB_ENV
-        fi
+          fi
 
       - name: Check for Breaking Changes
-      if: env.HAS_MOVE_CHANGES == 'true'
-      run: |
-        echo "" >> pr-analysis/pr-analysis.md
-        echo "## Breaking Change Analysis" >> pr-analysis/pr-analysis.md
+        if: env.HAS_MOVE_CHANGES == 'true'
+        run: |
+          echo "" >> pr-analysis/pr-analysis.md
+          echo "## Breaking Change Analysis" >> pr-analysis/pr-analysis.md
 
-        # Check for potential breaking changes in Move code
+          # Check for potential breaking changes in Move code
         breaking_patterns="public fun.*->.*|struct.*{.*}.*->|const.*:.*u.*->|module.*{.*->.*}"
 
-        if git diff ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }} -- "*.move" | grep -E "\-.*$breaking_patterns" > /dev/null; then
+          if git diff ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }} -- "*.move" | grep -E "\-.*$breaking_patterns" > /dev/null; then
           echo "⚠️ **Potential breaking changes detected in Move code**" >> pr-analysis/pr-analysis.md
           echo "POTENTIAL_BREAKING_CHANGES=true" >> $GITHUB_ENV
-        else
+          else
           echo "✅ No obvious breaking changes detected" >> pr-analysis/pr-analysis.md
           echo "POTENTIAL_BREAKING_CHANGES=false" >> $GITHUB_ENV
-        fi
+          fi
 
-        # Check for new public functions
-        new_public_funcs=$(git diff ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }} -- "*.move" | grep "^+.*public fun" | wc -l)
-        if [ "$new_public_funcs" -gt 0 ]; then
+          # Check for new public functions
+          new_public_funcs=$(git diff ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }} -- "*.move" | grep "^+.*public fun" | wc -l)
+          if [ "$new_public_funcs" -gt 0 ]; then
           echo "- **New public functions added:** $new_public_funcs" >> pr-analysis/pr-analysis.md
-        fi
+          fi
 
       - name: Suggest Reviewers
-      run: |
-        echo "" >> pr-analysis/pr-analysis.md
-        echo "## Suggested Reviewers" >> pr-analysis/pr-analysis.md
+        run: |
+          echo "" >> pr-analysis/pr-analysis.md
+          echo "## Suggested Reviewers" >> pr-analysis/pr-analysis.md
 
-        # Suggest reviewers based on file changes
-        if [ "$HAS_MOVE_CHANGES" = "true" ]; then
+          # Suggest reviewers based on file changes
+          if [ "$HAS_MOVE_CHANGES" = "true" ]; then
           echo "- Move code changes detected - suggest blockchain/Move experts" >> pr-analysis/pr-analysis.md
-        fi
+          fi
 
-        if [ "$HAS_WORKFLOW_CHANGES" = "true" ]; then
+          if [ "$HAS_WORKFLOW_CHANGES" = "true" ]; then
           echo "- Workflow changes detected - suggest DevOps/CI experts" >> pr-analysis/pr-analysis.md
-        fi
+          fi
 
-        if [ "$HAS_DOC_CHANGES" = "true" ]; then
+          if [ "$HAS_DOC_CHANGES" = "true" ]; then
           echo "- Documentation changes detected - suggest technical writers" >> pr-analysis/pr-analysis.md
-        fi
+          fi
 
-        if [ "$POTENTIAL_BREAKING_CHANGES" = "true" ]; then
+          if [ "$POTENTIAL_BREAKING_CHANGES" = "true" ]; then
           echo "- **Breaking changes detected - requires senior reviewer approval**" >> pr-analysis/pr-analysis.md
-        fi
+          fi
 
       - name: Upload PR Analysis
-      uses: actions/upload-artifact@v3
-      with:
+        uses: actions/upload-artifact@v3
+        with:
         name: pr-analysis-${{ github.event.pull_request.number }}
         path: pr-analysis/
         retention-days: 30
 
       - name: Auto-label PR
-      uses: actions/github-script@v6
-      with:
+        uses: actions/github-script@v6
+        with:
         script: |
           const labels = [];
 
@@ -272,8 +272,8 @@ A maintainer will review your issue soon. If you're interested in contributing c
           }
 
       - name: Comment PR Analysis
-      uses: actions/github-script@v6
-      with:
+        uses: actions/github-script@v6
+        with:
         script: |
           const fs = require('fs');
 
@@ -306,8 +306,8 @@ ${analysisContent}
 
     steps:
       - name: Thank Reviewer
-      uses: actions/github-script@v6
-      with:
+        uses: actions/github-script@v6
+        with:
         script: |
           const review = context.payload.review;
           const reviewer = review.user.login;
@@ -340,24 +340,24 @@ ${analysisContent}
   community-report:
       name: Generate Community Report
       runs-on: ubuntu-latest
-      if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
 
-    steps:
+          steps:
       - name: Checkout Repository
-      uses: actions/checkout@v4
+        uses: actions/checkout@v4
 
       - name: Generate Community Statistics
-      run: |
-        mkdir -p community-reports
+        run: |
+          mkdir -p community-reports
 
-        echo "# Weekly Community Report" > community-reports/community-report.md
+          echo "# Weekly Community Report" > community-reports/community-report.md
         echo "Generated on: $(date)" >> community-reports/community-report.md
         echo "Period: $(date -d '7 days ago' +%Y-%m-%d) to $(date +%Y-%m-%d)" >> community-reports/community-report.md
-        echo "" >> community-reports/community-report.md
+          echo "" >> community-reports/community-report.md
 
       - name: Fetch GitHub Statistics
-      uses: actions/github-script@v6
-      with:
+        uses: actions/github-script@v6
+        with:
         script: |
           const fs = require('fs');
           const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
@@ -471,11 +471,11 @@ ${analysisContent}
 
     steps:
       - name: Checkout Repository
-      uses: actions/checkout@v4
+        uses: actions/checkout@v4
 
       - name: Close Stale Issues
-      uses: actions/github-script@v6
-      with:
+        uses: actions/github-script@v6
+        with:
         script: |
           const staleLabel = 'stale';
           const daysBeforeStale = 30;
@@ -529,14 +529,14 @@ ${analysisContent}
           }
 
       - name: Update Community Health Files
-      run: |
-        # Check if community health files need updates
-        echo "Checking community health files..."
+        run: |
+          # Check if community health files need updates
+          echo "Checking community health files..."
 
-        # Update issue templates if they don't exist
-        mkdir -p .github/ISSUE_TEMPLATE
+          # Update issue templates if they don't exist
+          mkdir -p .github/ISSUE_TEMPLATE
 
-        if [ ! -f .github/ISSUE_TEMPLATE/bug_report.yml ]; then
+          if [ ! -f .github/ISSUE_TEMPLATE/bug_report.yml ]; then
           cat > .github/ISSUE_TEMPLATE/bug_report.yml << 'EOF'
         name: Bug Report
         description: File a bug report to help us improve
@@ -565,18 +565,18 @@ ${analysisContent}
                 2. See error...
             validations:
               required: true
-        EOF
-        fi
+          EOF
+          fi
 
       - name: Commit Maintenance Updates
-      run: |
-        git config --local user.email "action@github.com"
-        git config --local user.name "GitHub Action"
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
 
-        git add -A
-        if git diff --staged --quiet; then
+          git add -A
+          if git diff --staged --quiet; then
           echo "No maintenance updates needed"
-        else
+          else
           git commit -m "chore: automated project maintenance
 
           - Update community health files
@@ -584,4 +584,5 @@ ${analysisContent}
 
           Auto-generated by community-engagement workflow"
           git push
-        fi
+          fi
+
