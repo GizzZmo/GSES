@@ -9,14 +9,26 @@ A robust blockchain governance framework with hybrid voting, treasury management
 ---
 
 ## Table of Contents
-1. [Introduction](#introduction)
-2. [Features](#features)
-3. [Getting Started](#getting-started)
-4. [Architecture](#architecture)
-5. [Example Use Cases](#example-use-cases)
-6. [Community Engagement](#community-engagement)
-7. [Contributing](#contributing)
-8. [License](#license)
+1. [About](#about)
+2. [Introduction](#introduction)
+3. [Features](#features)
+4. [Getting Started](#getting-started)
+5. [Architecture](#architecture)
+6. [Example Use Cases](#example-use-cases)
+7. [Community Engagement](#community-engagement)
+8. [Contributing](#contributing)
+9. [License](#license)
+
+---
+
+## About
+
+**Want to learn more about this project?** 📖 Visit our comprehensive [About Page](ABOUT.md) for detailed information about:
+- Project mission and vision
+- Technical architecture details  
+- Development team and philosophy
+- Future roadmap and goals
+- Community contribution opportunities
 
 ---
 
@@ -38,11 +50,13 @@ Key use cases:
 - **Staking Integration**: Tie voting power to staked tokens for improved network security.
 - **Emergency Proposals**: Enable fast-track governance for urgent matters.
 - **X (Twitter) Integration**: Link community discussions to governance proposals for better engagement.
+- **Workflow Failure Testing**: Comprehensive failure testing system to validate CI/CD resilience and error handling.
 
 ### Detailed Feature Examples
 - **Hybrid Voting**: Quadratic voting to prevent dominance by large stakeholders, ensuring proportional representation.
 - **Treasury**: Use multi-sig wallets (e.g., Gnosis Safe) to secure funds and enable transparent audits.
 - **Staking**: Boost token utility by integrating staking rewards with governance participation.
+- **Failure Testing**: Advanced workflow system that intentionally simulates failures to test system resilience.
 
 ---
 
