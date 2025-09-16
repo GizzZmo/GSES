@@ -68,7 +68,7 @@ jobs:
           done || echo "No workflow dependencies found" >> orchestrator-report.md
 
       - name: Upload Orchestrator Report
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: orchestrator-report-${{ github.sha }}
           path: orchestrator-report.md
@@ -123,7 +123,7 @@ jobs:
           fi
 
       - name: Upload Validation Report
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: validation-report-${{ github.sha }}
           path: validation-report.md
@@ -197,7 +197,7 @@ jobs:
           ls -la workflow-templates/
 
       - name: Upload Workflow Templates
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: workflow-templates-${{ github.sha }}
           path: workflow-templates/
@@ -281,7 +281,7 @@ jobs:
           fi
 
       - name: Upload Summary Report
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: orchestrator-summary-${{ github.sha }}
           path: summary-report.md

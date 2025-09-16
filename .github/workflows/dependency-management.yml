@@ -123,7 +123,7 @@ jobs:
           echo "- Update GitHub Actions to latest versions when available" >> dependency-report.md
 
       - name: Upload Dependency Report
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: dependency-report-${{ github.sha }}
           path: dependency-report.md

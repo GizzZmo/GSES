@@ -103,7 +103,7 @@ jobs:
           done
 
       - name: Upload Performance Report
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: performance-report-${{ github.sha }}
           path: performance-report.md
@@ -159,7 +159,7 @@ jobs:
           echo "- Monitor for significant performance regressions" >> benchmark-comparison.md
 
       - name: Upload Benchmark Report
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: benchmark-comparison-${{ github.sha }}
           path: benchmark-comparison.md
@@ -215,7 +215,7 @@ jobs:
           echo "- **Success Rate:** ${successful_builds}/5" >> stress-test-report.md
 
       - name: Upload Stress Test Report
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: stress-test-report-${{ github.sha }}
           path: stress-test-report.md
