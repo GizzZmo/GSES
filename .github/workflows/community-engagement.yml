@@ -1,0 +1,163 @@
+---
+name: Community Engagement & PR Automation
+
+on:
+  issues:
+    types: [opened, labeled, assigned]
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  pull_request_review:
+    types: [submitted]
+  schedule:
+    # Weekly community report on Sundays at 6 PM UTC
+    - cron: '0 18 * * 0'
+  workflow_dispatch:
+
+jobs:
+  # Auto-label and triage new issues
+  issue-triage:
+    name: Automatic Issue Triage
+    runs-on: ubuntu-latest
+    if: github.event_name == 'issues' && github.event.action == 'opened'
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Auto-label Issues
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const issue = context.payload.issue;
+            const title = issue.title.toLowerCase();
+            const body = issue.body ? issue.body.toLowerCase() : '';
+
+            const labels = [];
+
+            // Categorize by type
+            if (title.includes('bug') || body.includes('error') || body.includes('fail')) {
+              labels.push('bug');
+            } else if (title.includes('feature') || title.includes('enhancement') || body.includes('feature request')) {
+              labels.push('enhancement');
+            } else if (title.includes('doc') || body.includes('documentation')) {
+              labels.push('documentation');
+            } else if (title.includes('question') || title.includes('help')) {
+              labels.push('question');
+            }
+
+            // Categorize by component
+            if (body.includes('governance') || title.includes('governance')) {
+              labels.push('governance');
+            } else if (body.includes('treasury') || title.includes('treasury')) {
+              labels.push('treasury');
+            } else if (body.includes('staking') || title.includes('staking')) {
+              labels.push('staking');
+            }
+
+            // Apply labels if any were found
+            if (labels.length > 0) {
+              github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                labels: labels
+              });
+            }
+
+  # Welcome new contributors
+  welcome-contributors:
+    name: Welcome New Contributors
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' && github.event.action == 'opened'
+
+    steps:
+      - name: Welcome First-time Contributors
+        uses: actions/github-script@v6
+        with:
+          script: |
+            // Check if this is the contributor's first PR
+            const { data: pullRequests } = await github.rest.pulls.list({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'all',
+              creator: context.payload.pull_request.user.login
+            });
+
+            if (pullRequests.length === 1) {
+              // This is their first PR
+              const welcomeMessage = `
+              👋 Welcome to the Decentralized Governance System project! 
+
+              Thank you for your first contribution! Here are some helpful resources:
+              - 📖 [Contributing Guidelines](CONTRIBUTING.md)
+              - 🐛 [Code of Conduct](CODE_OF_CONDUCT.md)
+              - 💬 [Community Discussions](https://github.com/${context.repo.owner}/${context.repo.repo}/discussions)
+
+              A maintainer will review your PR soon. Thanks for contributing! 🎉
+              `;
+
+              github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.payload.pull_request.number,
+                body: welcomeMessage
+              });
+            }
+
+  # Weekly community report
+  community-report:
+    name: Generate Weekly Community Report
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Generate Community Report
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const now = new Date();
+            const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+            // Get recent activity
+            const { data: issues } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'all',
+              since: weekAgo.toISOString(),
+              per_page: 100
+            });
+
+            const { data: pulls } = await github.rest.pulls.list({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'all',
+              sort: 'created',
+              direction: 'desc',
+              per_page: 100
+            });
+
+            // Filter PRs from this week
+            const recentPulls = pulls.filter(pr => 
+              new Date(pr.created_at) >= weekAgo
+            );
+
+            const report = `
+            # Weekly Community Report - ${now.toDateString()}
+
+            ## 📊 Activity Summary
+            - **New Issues:** ${issues.filter(i => !i.pull_request).length}
+            - **New Pull Requests:** ${recentPulls.length}
+            - **Issues Closed:** ${issues.filter(i => !i.pull_request && i.state === 'closed').length}
+            - **PRs Merged:** ${recentPulls.filter(pr => pr.state === 'closed' && pr.merged_at).length}
+
+            ## 🎯 Recent Highlights
+            ${recentPulls.slice(0, 5).map(pr => `- [${pr.title}](${pr.html_url}) by @${pr.user.login}`).join('\n')}
+
+            Thank you to all contributors! 🙏
+            `;
+
+            console.log('Weekly Community Report:');
+            console.log(report);
