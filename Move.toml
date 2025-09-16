@@ -1,7 +1,6 @@
-# File: Move.toml (for your MinimalTest package)
-
+# File: Move.toml
 [package]
-name = "MinimalTest" 
+name = "HybridGovernance" 
 version = "0.0.1"
 # edition = "2025.beta" # Optional: if you want to use a specific Move edition
 
@@ -13,5 +12,5 @@ version = "0.0.1"
 # provide Sui, MoveStdlib, Bridge, SuiSystem, etc.
 
 [addresses]
-minimal_test_addr = "0x1" 
-# Or whatever you named the address for your minimal_module.move
+hybrid_governance_pkg = "0x1" 
+minimal_test_addr = "0x2"
