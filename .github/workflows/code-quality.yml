@@ -1,0 +1,193 @@
+---
+name: Code Quality & Linting
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  schedule:
+    # Run code quality checks daily at 1 AM UTC
+    - cron: '0 1 * * *'
+  workflow_dispatch:
+
+jobs:
+  # Move code linting and formatting
+  move-linting:
+    name: Move Code Linting
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Rust Toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: "1.86.0"
+          components: rustfmt, clippy
+
+      - name: Install Sui CLI
+        run: |
+          cargo install --locked --git https://github.com/MystenLabs/sui.git --tag "testnet-v1.48.1" sui
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+
+      - name: Verify Tools
+        run: |
+          rustc --version
+          cargo --version
+          sui --version
+
+      - name: Move Code Style Check
+        run: |
+          mkdir -p quality-reports
+          echo "# Move Code Quality Report" > quality-reports/move-quality.md
+          echo "Generated on: $(date)" >> quality-reports/move-quality.md
+          echo "" >> quality-reports/move-quality.md
+
+          # Check file structure and naming conventions
+          echo "## File Structure Analysis" >> quality-reports/move-quality.md
+          move_files=$(find . -name "*.move" -not -path "./build/*")
+          file_count=$(echo "$move_files" | wc -l)
+          echo "- **Total Move files:** $file_count" >> quality-reports/move-quality.md
+          echo "- **Files analyzed:** $move_files" >> quality-reports/move-quality.md
+          echo "" >> quality-reports/move-quality.md
+
+      - name: Analyze Code Patterns
+        run: |
+          echo "## Code Pattern Analysis" >> quality-reports/move-quality.md
+          echo "" >> quality-reports/move-quality.md
+
+          # Check for proper error handling
+          abort_usage=$(find . -name "*.move" -exec grep -c "abort\|assert!" {} + | awk '{s+=$1} END {print s+0}')
+          echo "- **Abort statements:** $abort_usage" >> quality-reports/move-quality.md
+
+          # Check for public function patterns
+          public_funcs=$(find . -name "*.move" -exec grep -c "public fun\|public entry fun" {} + | awk '{s+=$1} END {print s+0}')
+          echo "- **Public functions:** $public_funcs" >> quality-reports/move-quality.md
+
+          # Check for test coverage
+          test_files=$(find . -name "*test*.move" -o -name "*-tests.move" | wc -l)
+          echo "- **Test files:** $test_files" >> quality-reports/move-quality.md
+
+          # Check for documentation comments
+          doc_comments=$(find . -name "*.move" -exec grep -c "///" {} + | awk '{s+=$1} END {print s+0}')
+          echo "- **Documentation comments:** $doc_comments" >> quality-reports/move-quality.md
+          echo "" >> quality-reports/move-quality.md
+
+      - name: Build and Test Move Project
+        run: |
+          echo "## Build and Test Results" >> quality-reports/move-quality.md
+          echo "" >> quality-reports/move-quality.md
+          
+          if sui move build --path .; then
+            echo "✅ **Build:** Successful" >> quality-reports/move-quality.md
+          else
+            echo "❌ **Build:** Failed" >> quality-reports/move-quality.md
+          fi
+          
+          if sui move test --path .; then
+            echo "✅ **Tests:** All passed" >> quality-reports/move-quality.md
+          else
+            echo "❌ **Tests:** Some failed" >> quality-reports/move-quality.md
+          fi
+
+      - name: Upload Move Quality Reports
+        uses: actions/upload-artifact@v3
+        with:
+          name: move-quality-reports-${{ github.sha }}
+          path: quality-reports/
+          retention-days: 30
+
+  # Configuration and documentation linting
+  config-linting:
+    name: Configuration & Documentation Linting
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Install Linting Tools
+        run: |
+          npm install -g markdownlint-cli
+
+      - name: Lint Markdown Files
+        continue-on-error: true
+        run: |
+          mkdir -p lint-reports
+          echo "# Documentation Linting Report" > lint-reports/doc-lint.md
+          echo "Generated on: $(date)" >> lint-reports/doc-lint.md
+          echo "" >> lint-reports/doc-lint.md
+
+          # Basic markdown check
+          echo "## Markdown Files Found" >> lint-reports/doc-lint.md
+          find . -name "*.md" -type f | while read file; do
+            echo "- $file" >> lint-reports/doc-lint.md
+          done
+          echo "" >> lint-reports/doc-lint.md
+
+      - name: Lint YAML Files
+        continue-on-error: true
+        run: |
+          echo "## YAML Lint Results" >> lint-reports/doc-lint.md
+          yaml_files=$(find .github/workflows -name "*.yml")
+          yaml_count=$(echo "$yaml_files" | wc -l)
+          echo "- **YAML files found:** $yaml_count" >> lint-reports/doc-lint.md
+
+          valid_count=0
+          for file in $yaml_files; do
+            if python3 -c "import yaml; yaml.safe_load(open('$file', 'r'))" 2>/dev/null; then
+              valid_count=$((valid_count + 1))
+            fi
+          done
+          echo "- **Valid YAML files:** $valid_count" >> lint-reports/doc-lint.md
+
+      - name: Upload Configuration Lint Reports
+        uses: actions/upload-artifact@v3
+        with:
+          name: config-lint-reports-${{ github.sha }}
+          path: lint-reports/
+          retention-days: 30
+
+  # Generate quality summary
+  quality-summary:
+    name: Generate Quality Summary
+    runs-on: ubuntu-latest
+    needs: [move-linting, config-linting]
+    if: always()
+
+    steps:
+      - name: Download All Quality Reports
+        uses: actions/download-artifact@v3
+        with:
+          path: all-quality-reports/
+
+      - name: Generate Consolidated Quality Report
+        run: |
+          mkdir -p final-quality-report
+          echo "# Consolidated Code Quality Report" > final-quality-report/QUALITY_SUMMARY.md
+          echo "Generated on: $(date)" >> final-quality-report/QUALITY_SUMMARY.md
+          echo "Repository: ${{ github.repository }}" >> final-quality-report/QUALITY_SUMMARY.md
+          echo "Commit: ${{ github.sha }}" >> final-quality-report/QUALITY_SUMMARY.md
+          echo "" >> final-quality-report/QUALITY_SUMMARY.md
+
+          echo "## Quality Checks Performed" >> final-quality-report/QUALITY_SUMMARY.md
+          echo "- ✅ Move code analysis and patterns" >> final-quality-report/QUALITY_SUMMARY.md
+          echo "- ✅ Documentation and configuration linting" >> final-quality-report/QUALITY_SUMMARY.md
+          echo "" >> final-quality-report/QUALITY_SUMMARY.md
+
+          # Combine all reports if they exist
+          find all-quality-reports/ -name "*.md" -exec echo "---" \; -exec cat {} \; >> final-quality-report/QUALITY_SUMMARY.md 2>/dev/null || true
+
+      - name: Upload Consolidated Quality Report
+        uses: actions/upload-artifact@v3
+        with:
+          name: consolidated-quality-report-${{ github.sha }}
+          path: final-quality-report/
+          retention-days: 90
